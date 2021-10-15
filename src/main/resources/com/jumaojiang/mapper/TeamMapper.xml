@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jumaojiang.mapper.TeamMapper">
+
+    <!-- n21_二级缓存开启步骤__添加缓存标志 -->
+    <cache>
+<!--        <property name="eviction" value="LRU"/>&lt;!&ndash;回收策略为LRU&ndash;&gt;-->
+<!--        <property name="flushInterval" value="60000"/>&lt;!&ndash;自动刷新时间间隔为60S&ndash;&gt;-->
+<!--        <property name="size" value="1024"/>&lt;!&ndash;最多缓存1024个引用对象&ndash;&gt;-->
+<!--        <property name="readOnly" value="true"/>&lt;!&ndash;只读&ndash;&gt;-->
+    </cache>
+
+    <select id="queryAll" resultType="com.jumaojiang.pojo.Team" flushCache="false">
+        select * from team
+    </select>
+
+    <insert id="add" parameterType="com.jumaojiang.pojo.Team">
+        INSERT INTO `team` (`teamName`, `location`, `createTime`) VALUES (#{teamName}, #{location}, #{createTime})
+    </insert>
+
+    <!-- e5_插入数据获取自增的ID -->
+    <insert id="add2" parameterType="com.jumaojiang.pojo.Team">
+        <selectKey keyProperty="teamId" order="AFTER" resultType="java.lang.Integer">
+            select LAST_INSERT_ID()
+        </selectKey>
+        INSERT INTO `team` (`teamName`, `location`, `createTime`) VALUES (#{teamName}, #{location}, #{createTime})
+    </insert>
+
+    <!-- f6_传入多个参数之顺序占位符 -->
+    <select id="queryByScopeId" resultType="com.jumaojiang.pojo.Team">
+        select * FROM team where teamId>=#{arg0} and teamId&lt;#{arg1}
+    </select>
+
+    <!-- g7_传入多个参数之注解配置 -->
+    <select id="queryByScope2Id" resultType="com.jumaojiang.pojo.Team">
+        select * FROM team where teamId>=#{min} and teamId&lt;#{max}
+    </select>
+
+    <!-- h8_传入多个参数之传递对象类型 -->
+    <select id="queryByTeam" resultType="com.jumaojiang.pojo.Team" parameterType="com.jumaojiang.pojo.Team">
+        select * FROM team where teamId>=#{teamId} and teamName LIKE #{teamName}
+    </select>
+
+    <!-- i9_返回基本数据类型(单行单列) -->
+    <select id="queryByName" resultType="java.lang.String">
+        select teamName FROM team where teamName LIKE #{teamName}
+    </select>
+
+    <!-- i9_返回基本数据类型(单行多列) -->
+    <select id="queryByName2" resultType="java.util.Map">
+        select * FROM team where teamName LIKE #{teamName}
+    </select>
+
+    <!-- i9_返回基本数据类型(多行多列) -->
+    <select id="queryByLocation" resultType="java.util.Map">
+        select * FROM team where location LIKE #{location}
+    </select>
+
+    <!-- j10_自定义返回类型映射 -->
+    <select id="queryById" resultMap="baseMap">
+        select * FROM team where teamId=#{teamId}
+    </select>
+    <resultMap id="baseMap" type="Team">
+        <!-- 一般主键列(唯一属性)用id, 其余列用result
+        column: 表示数据库中的列名(不区分大小写)
+        property: 表示实体类的属性名(区分大小写)
+        javaType: 实体类中的属性类型(可省略)
+        jdbcType: 数据库中的column属性类型(可省略)
+     -->
+        <id property="teamId" column="teamId"></id>
+        <result property="teamName" column="teamName"></result>
+        <result property="location" column="location"></result>
+        <result property="createTime" column="createTime"></result>
+    </resultMap>
+
+    <!-- l14_对多映射_引入关联对象映射 -->
+    <!-- 查询一个球队信息及其球队的所有成员 -->
+    <select id="queryTeamAndPlayerById" resultMap="JoninPlayerResult">
+        select * from team t INNER JOIN player p on p.teamId=t.teamId where t.teamId=#{teamId}
+    </select>
+    <resultMap id="JoninPlayerResult" type="Team" extends="baseMap">
+        <collection property="playerList1" javaType="java.util.List" ofType="Player"
+                    resultMap="com.jumaojiang.mapper.PlayerMapper.baseMap"/>
+    </resultMap>
+
+    <!-- l15_对多映射_引入关联对象单独查询 -->
+    <!-- 查询一个球队信息及其球队的所有成员 -->
+    <select id="queryTeamAndPlayerById2" resultMap="JoninPlayerResult2">
+        select * from team t INNER JOIN player p on p.teamId=t.teamId where t.teamId=#{teamId}
+    </select>
+    <resultMap id="JoninPlayerResult2" type="Team" extends="baseMap">
+        <collection property="playerList2" javaType="java.util.List" ofType="Player"
+                    column="teamId" select="com.jumaojiang.mapper.PlayerMapper.queryById"/>
+    </resultMap>
+
+
+    <!-- m16_动态SQL_where标签在select中的使用 -->
+    <!-- 如果属性非空,则条件查询 -->
+    <select id="queryTeamByMany" parameterType="QueryTeamVO" resultType="Team">
+        SELECT * from team
+        <!-- where teamName LIKE "%鹿%" and createTime>="1946-01-01" and createTime<="2021-10-11" and location LIKE "%北%" -->
+        <where>
+            <if test="teamName!=null">
+                and teamName LIKE concat(concat("%",#{teamName}),"%")
+            </if>
+            <if test="beginTime!=null">
+                and createTime&gt;=#{beginTime}
+            </if>
+            <if test="endTime!=null">
+                and createTime&lt;=#{endTime}
+            </if>
+            <if test="location!=null">
+                and location LIKE concat(concat("%",#{location}),"%")
+            </if>
+        </where>
+    </select>
+
+
+    <!-- m17_动态SQL_set标签在update中的使用 -->
+    <!-- 更新属性非空的字段 -->
+    <update id="updateByMany" parameterType="Team">
+        update team
+        <set>
+            <if test="teamName!=null">
+                teamName=#{teamName},
+            </if>
+            <if test="location!=null">
+                location=#{location},
+            </if>
+            <if test="createTime!=null">
+                createTime=#{createTime},
+            </if>
+        </set>
+        where teamId=#{teamId}
+    </update>
+
+
+    <!-- m18_动态SQL_forEach标签批量增加 -->
+    <!-- 批量增加多条数据 -->
+    <insert id="addList" parameterType="Team">
+        INSERT INTO `team` (teamName,location) VALUES
+        <foreach collection="list" item="t" separator=",">
+            (#{t.teamName},#{t.location})
+        </foreach>
+    </insert>
+
+    <!-- m19_动态SQL_forEach标签批量删除 -->
+    <!-- 批量删除多条数据 -->
+    <delete id="deleteList" parameterType="Team">
+        delete from team  where teamId in
+        <foreach collection="list" item="t" separator="," open="(" close=")">
+            #{t.teamId}
+        </foreach>
+    </delete>
+
+
+
+</mapper>

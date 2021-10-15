@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<!-- MyBatis全局配置文件 -->
+<configuration>
+    <properties resource="jdbc.properties"></properties>
+
+    <settings>
+        <!-- 日志配置 -->
+        <setting name="logImpl" value="LOG4J"/>
+        <!-- 二级缓存配置(跨sqlSession) -->
+        <setting name="cacheEnabled" value="true"/>
+    </settings>
+    <!-- 自定义别名 -->
+    <typeAliases>
+        <!-- 推荐写法: 批量定义别名,扫描指定包下的所有类,别名自动定义为类名,首字母不区分大小写 -->
+        <package name="com.jumaojiang.pojo"/>
+        <package name="com.jumaojiang.vo"/>
+    </typeAliases>
+
+    <!--引入pageHelper插件
+        注意这里实现类要写成PageInterceptor, 5.0之前的版本都写PageHelper, 5.0之后要换成PageInterceptor
+     -->
+    <plugins>
+        <plugin interceptor="com.github.pagehelper.PageInterceptor">
+            <!--reasonable: 分页合理化参数, 默认值false, 直接根据参数进行查询
+              当参数设置为true时, pageNum<=0 时会查询第一页, pageNum>pages (超过总数时),会查询最后一页.
+              方言可以省略, 会根据连接数据的参数url自动推断
+            -->
+            <property name="reasonable" value="true"/>
+        </plugin>
+    </plugins>
+
+    <!-- 配置MyBatis的环境 -->
+    <environments default="development">
+        <!-- id:数据源的名称 -->
+        <environment id="development">
+            <!-- 事务类型: JDBC (使用Connection对象的提交和回滚的方法) -->
+            <transactionManager type="JDBC"/>
+            <!-- 创建数据源: POOLED方式表示使用连接池 -->
+            <dataSource type="POOLED">
+                <!-- 创建数据源的4大必备参数 (mysql8有cj)-->
+                <property name="driver" value="${driver}"/>
+                <!-- &amp;在Mybatis配置文件中写,在properties配置文件中只写& -->
+                <property name="url" value="${url}"/>
+                <property name="username" value="${username}"/>
+                <property name="password" value="${password}"/>
+            </dataSource>
+        </environment>
+    </environments>
+<!--    <mappers>-->
+<!--        <mapper resource="com/jumaojiang/pojo/Team.xml"/>-->
+<!--    </mappers>-->
+    <mappers>
+        <mapper resource="com/jumaojiang/mapper/TeamMapper.xml"/>
+        <mapper resource="com/jumaojiang/mapper/PlayerMapper.xml"/>
+    </mappers>
+</configuration>

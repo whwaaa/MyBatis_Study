@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jumaojiang.mapper.PlayerMapper">
+
+    <select id="queryById" resultType="Player">
+        SELECT * FROM player where teamId=#{teamId}
+    </select>
+
+    <!-- k11_关系映射_通过关联对象打点调用属性 -->
+    <!-- 查询编号1的球员及所在的球队 -->
+    <select id="queryPlayerAndTeamByPlayerId" resultMap="JoinTeamResult">
+        SELECT * FROM player p INNER JOIN team t on p.teamId=t.teamId where p.playerId=#{playerId}
+    </select>
+    <resultMap id="baseMap" type="Player">
+        <id column="playerId" property="playerId"/>
+        <result column="playerName" property="playerName"/>
+        <result column="playerNum" property="playerNum"/>
+        <result column="teamId" property="teamId"/>
+    </resultMap>
+    <resultMap id="JoinTeamResult" type="Player" extends="baseMap">
+        <id property="team1.teamId" column="teamId"/>
+        <result property="team1.teamName" column="teamName"/>
+        <result property="team1.location" column="location"/>
+        <result property="team1.createTime" column="createTime"/>
+    </resultMap>
+
+    <!-- k12_关系映射_引入关联对象的Mapper映射 -->
+    <!-- 查询编号1的球员及所在的球队 -->
+    <select id="queryPlayerAndTeamByPlayerId2" resultMap="JoinTeamResult2">
+        SELECT * FROM player p INNER JOIN team t on p.teamId=t.teamId where p.playerId=#{playerId}
+    </select>
+    <resultMap id="JoinTeamResult2" type="Player" extends="baseMap">
+        <association property="team2" javaType="Team" resultMap="com.jumaojiang.mapper.TeamMapper.baseMap"></association>
+    </resultMap>
+
+    <!-- k13_关系映射_使用关联对象的查询语句 -->
+    <!-- 查询编号1的球员及所在的球队 -->
+    <select id="queryPlayerAndTeamByPlayerId3" resultMap="JoinTeamResult3">
+        SELECT * FROM player where playerId=#{playerId}
+    </select>
+    <resultMap id="JoinTeamResult3" type="Player" extends="baseMap">
+        <association property="team3" column="teamId" select="com.jumaojiang.mapper.TeamMapper.queryById"></association>
+    </resultMap>
+</mapper>
